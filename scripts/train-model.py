@@ -1,6 +1,6 @@
-import os
-import pandas as pd
 from time import sleep
+
+import pandas as pd
 
 # Read input data. Inputs are stored in a blob at /workflow/inputs/<NAME OF INPUT>.
 # For file inputs, the blob is the file input itself. 
@@ -15,4 +15,4 @@ sleep(20)
 
 # Write output. Outputs must be written to /workflow/outputs/<NAME OF OUTPUT> for it to be tracked.
 named_output = "model"
-os.mkdir("/workflow/outputs/{}".format(named_output)) 
+df.to_csv("/workflow/outputs/{}".format(named_output))

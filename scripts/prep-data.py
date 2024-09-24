@@ -1,11 +1,12 @@
 import pandas as pd
-import argparse
+
 
 def read_input(input_name):
     input_location = f"/workflow/inputs/{input_name}"
     with open(input_location, "r") as file:
         contents = file.read()
         return contents
+
 
 # Read input data. Inputs are stored in a blob at /workflow/inputs/<NAME OF INPUT>.
 # For file inputs, the blob is the file input itself. 
