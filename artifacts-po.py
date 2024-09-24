@@ -56,13 +56,13 @@ def artifact_meta(data_path: str) -> Tuple[
     FlyteFile
     ]: 
     """py
-    pyflyte run --remote artifacts-po.py artifact_meta --data_path /mnt/data.csv
+    pyflyte run --remote artifacts-po.py artifact_meta --data_path /mnt/code/data/data.csv
     """
 
     data_prep_results = DominoJobTask(    
         name="Prepare data",    
         domino_job_config=DominoJobConfig(
-            Command="python /mnt/scripts/prep-data.py",
+            Command="python /mnt/code/scripts/prep-data.py",
         ),
         inputs={
             "data_path": str
@@ -80,10 +80,10 @@ def artifact_meta(data_path: str) -> Tuple[
     training_results = DominoJobTask(
         name="Train model",
         domino_job_config=DominoJobConfig(            
-            Command="python /mnt/scripts/train-model.py",
+            Command="python /mnt/code/scripts/train-model.py",
         ),
         inputs={
-            "processed_data_in": FlyteFile,
+            "processed_data": FlyteFile,
             "epochs": int,
             "batch_size": int,
         },
@@ -91,7 +91,7 @@ def artifact_meta(data_path: str) -> Tuple[
             "model": FlyteFile,
         },
         use_latest=True,
-    )(processed_data_in=data_prep_results.processed_data,epochs=10,batch_size=32)
+    )(processed_data=data_prep_results.processed_data, epochs=10, batch_size=32)
 
     # return the result from 2nd node to the workflow annotated in different ways
     model = training_results['model']
