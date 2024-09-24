@@ -1,3 +1,4 @@
+from flytekitplugins.domino.artifact import ArtifactGroup, DominoArtifact, REPORT
 from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig, Input, Output
 from flytekit import workflow, dynamic
 from flytekit.types.file import FlyteFile
@@ -34,18 +35,23 @@ import uuid
 # https://github.com/flyteorg/flytekit/blob/master/tests/flytekit/unit/core/test_artifacts.py
 
 # to use partition_keys (necessary for Domino), we have to define this type up front -- this entire definition should be eliminated
-ReportArtifact = Artifact(name="report.pdf", partition_keys=["type", "group"])
-ReportArtifact2 = Artifact(name="report2.pdf", partition_keys=["type", "group"])
-ReportArtifact3 = Artifact(name="report3.pdf", partition_keys=["type", "group"])
+ReportArtifact1 = Artifact(name="report1.pdf", partition_keys=["type", "group"])
+# DominoArtifact extends Artifact and adds partition keys: group, type
+ReportArtifact2 = DominoArtifact(name="report2.pdf")
+ReportArtifact3 = DominoArtifact(name="report3.pdf")
 
 # ideally, a group is defined like this
 # ReportGroup = Group(name="my custom report", type=Report)
+ArtifactGroup1 = ArtifactGroup(name="report_foo", kind=REPORT)
+ArtifactGroup2 = ArtifactGroup(name="report_bar", kind=REPORT)
+
 
 @workflow
 def artifact_meta(data_path: str) -> Tuple[
-    Annotated[FlyteFile, ReportArtifact(type="report", group="report_foo")], 
-    Annotated[FlyteFile, ReportArtifact2(type="report", group="report_foo")], 
-    Annotated[FlyteFile, ReportArtifact3(type="report", group="report_bar")], 
+    # Bind partition values dynamically
+    Annotated[FlyteFile, ReportArtifact1(group="report_foo", type="report")],
+    Annotated[FlyteFile, ReportArtifact2(group=ArtifactGroup1.name, type=ArtifactGroup1.kind.value)],
+    Annotated[FlyteFile, ReportArtifact3(group=ArtifactGroup2.name, type=ArtifactGroup2.kind.value)],
 
     # ideally the definition looks more like this:
     # Annotated[FlyteFile, Artifact(name="report.pdf", Group=ReportGroup)], 
@@ -56,7 +62,7 @@ def artifact_meta(data_path: str) -> Tuple[
     FlyteFile
     ]: 
     """py
-    pyflyte run --remote artifacts-po.py artifact_meta --data_path /mnt/code/data/data.csv
+    pyflyte run --remote artifacts-po-1.py artifact_meta --data_path /mnt/code/data/data.csv
     """
 
     data_prep_results = DominoJobTask(    
