@@ -34,23 +34,22 @@ from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 # https://github.com/flyteorg/flytekit/blob/master/tests/flytekit/unit/core/test_artifacts.py
 
 # to use partition_keys (necessary for Domino), we have to define this type up front -- this entire definition should be eliminated
-ReportArtifact1 = Artifact(name="report1.pdf", partition_keys=["type", "group"])
+ReportArtifact1 = Artifact(name="report1.pdf", partition_keys=["group", "type"])
 # DominoArtifact extends Artifact and adds partition keys: group, type
 ReportArtifact2 = DominoArtifact(name="report2.pdf")
 ReportArtifact3 = DominoArtifact(name="report3.pdf")
 
 # ideally, a group is defined like this
 # ReportGroup = Group(name="my custom report", type=Report)
-ArtifactGroup1 = ArtifactGroup(name="report_foo", kind=REPORT)
-ArtifactGroup2 = ArtifactGroup(name="report_bar", kind=REPORT)
+ReportGroup1 = ArtifactGroup(name="report_foo", kind=REPORT)
+ReportGroup2 = ArtifactGroup(name="report_bar", kind=REPORT)
 
 
 @workflow
 def artifact_meta(data_path: str) -> Tuple[
-    # Bind partition values dynamically
     Annotated[FlyteFile, ReportArtifact1(group="report_foo", type="report")],
-    Annotated[FlyteFile, ReportArtifact2(group=ArtifactGroup1.name, type=ArtifactGroup1.kind.value)],
-    Annotated[FlyteFile, ReportArtifact3(group=ArtifactGroup2.name, type=ArtifactGroup2.kind.value)],
+    Annotated[FlyteFile, ReportArtifact2(group=ReportGroup1.name, type=ReportGroup1.kind.value)],
+    Annotated[FlyteFile, DominoArtifact(name="report3.pdf")(group=ReportGroup2.name, type=ReportGroup2.kind.value)],
 
     # ideally the definition looks more like this:
     # Annotated[FlyteFile, Artifact(name="report.pdf", Group=ReportGroup)], 
@@ -58,7 +57,7 @@ def artifact_meta(data_path: str) -> Tuple[
     # ArtifactFile(name="report.pdf", Group=ReportGroup)
 
     # normal workflow output with no annotations
-    FlyteFile[TypeVar("csv")]
+    FlyteFile
 ]:
     """py
     pyflyte run --remote artifacts-po-1.py artifact_meta --data_path /mnt/code/data/data.csv
