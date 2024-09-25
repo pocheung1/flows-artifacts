@@ -33,23 +33,26 @@ from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 # https://github.com/flyteorg/flytekit/blob/master/flytekit/core/artifact.py#L371
 # https://github.com/flyteorg/flytekit/blob/master/tests/flytekit/unit/core/test_artifacts.py
 
-# to use partition_keys (necessary for Domino), we have to define this type up front -- this entire definition should be eliminated
-ReportArtifact1 = Artifact(name="report1.pdf", partition_keys=["group", "type"])
-# DominoArtifact extends Artifact and adds partition keys: group, type
-ReportArtifact2 = DominoArtifact(name="report2.pdf")
-ReportArtifact3 = DominoArtifact(name="report3.pdf")
+ReportGroup1 = ArtifactGroup(name="report_foo", kind=REPORT)
+ReportGroup2 = ArtifactGroup(name="report_bar", kind=REPORT)
+
+# to use partition_keys (necessary for Domino), we have to define this type up front
+# This uses Artifact with partition keys specified
+ReportArtifact1 = Artifact(name="report1.pdf", partition_keys=["group", "type"])(group="report_foo", type="report")
+# This uses DominoArtifact with built-in partition keys: group, type
+ReportArtifact2 = DominoArtifact(name="report2.pdf")(group=ReportGroup1.name, type=ReportGroup1.kind.value)
+# This gives an error: Binding a partition group's value dynamically is not allowed for workflows
+ReportArtifact3 = DominoArtifact(name="report3.pdf", group=ReportGroup2)
 
 # ideally, a group is defined like this
 # ReportGroup = Group(name="my custom report", type=Report)
-ReportGroup1 = ArtifactGroup(name="report_foo", kind=REPORT)
-ReportGroup2 = ArtifactGroup(name="report_bar", kind=REPORT)
 
 
 @workflow
 def artifact_meta(data_path: str) -> Tuple[
-    Annotated[FlyteFile, ReportArtifact1(group="report_foo", type="report")],
-    Annotated[FlyteFile, ReportArtifact2(group=ReportGroup1.name, type=ReportGroup1.kind.value)],
-    Annotated[FlyteFile, DominoArtifact(name="report3.pdf")(group=ReportGroup2.name, type=ReportGroup2.kind.value)],
+    Annotated[FlyteFile, ReportArtifact1],
+    Annotated[FlyteFile, ReportArtifact2],
+    Annotated[FlyteFile, DominoArtifact(name="report2.pdf")(group=ReportGroup1.name, type=ReportGroup1.kind.value)],
 
     # ideally the definition looks more like this:
     # Annotated[FlyteFile, Artifact(name="report.pdf", Group=ReportGroup)], 
@@ -100,4 +103,9 @@ def artifact_meta(data_path: str) -> Tuple[
     # return the result from 2nd node to the workflow annotated in different ways
     model = training_results['model']
 
-    return model, model, model, model
+    return (
+        model,
+        model,
+        model,
+        model,
+    )
