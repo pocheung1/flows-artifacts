@@ -1,11 +1,10 @@
-from flytekitplugins.domino.artifact import ArtifactGroup, DominoArtifact, REPORT
-from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig, Input, Output
-from flytekit import workflow, dynamic
-from flytekit.types.file import FlyteFile
-from flytekit.types.directory import FlyteDirectory
-from typing import TypeVar, Optional, List, Dict, Annotated, Tuple, NamedTuple
+from typing import TypeVar, Annotated, Tuple
+
 from flytekit import Artifact
-import uuid
+from flytekit import workflow
+from flytekit.types.file import FlyteFile
+from flytekitplugins.domino.artifact import ArtifactGroup, DominoArtifact, REPORT
+from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 
 # key pieces of data to collect
 
@@ -59,14 +58,14 @@ def artifact_meta(data_path: str) -> Tuple[
     # ArtifactFile(name="report.pdf", Group=ReportGroup)
 
     # normal workflow output with no annotations
-    FlyteFile
-    ]: 
+    FlyteFile[TypeVar("csv")]
+]:
     """py
     pyflyte run --remote artifacts-po-1.py artifact_meta --data_path /mnt/code/data/data.csv
     """
 
-    data_prep_results = DominoJobTask(    
-        name="Prepare data",    
+    data_prep_results = DominoJobTask(
+        name="Prepare data",
         domino_job_config=DominoJobConfig(
             Command="python /mnt/code/scripts/prep-data.py",
         ),
@@ -76,29 +75,30 @@ def artifact_meta(data_path: str) -> Tuple[
         outputs={
             # NOTE: Flyte normally suppports this -- but notice there are no partitions, which make them useless to Domino
             # this output is consumed by a subsequent task but also marked as an artifact
-            "processed_data": Annotated[FlyteFile, Artifact(name="processed.sas7bdat")],
+            "processed_data": Annotated[FlyteFile[TypeVar("csv")], Artifact(name="processed.csv")],
             # no downstream consumers -- simply an artifact output from an intermediate node in the graph
-            "processed_data2": Annotated[FlyteFile, Artifact(name="processed2.sas7bdat")],
+            "processed_data2": Annotated[FlyteFile[TypeVar("csv")], Artifact(name="processed2.csv")],
         },
         use_latest=True,
     )(data_path=data_path)
 
     training_results = DominoJobTask(
         name="Train model",
-        domino_job_config=DominoJobConfig(            
+        domino_job_config=DominoJobConfig(
             Command="python /mnt/code/scripts/train-model.py",
         ),
         inputs={
-            "processed_data": FlyteFile,
+            "processed_data": FlyteFile[TypeVar("csv")],
             "epochs": int,
             "batch_size": int,
         },
         outputs={
-            "model": FlyteFile,
+            "model": FlyteFile[TypeVar("csv")],
         },
         use_latest=True,
     )(processed_data=data_prep_results.processed_data, epochs=10, batch_size=32)
 
     # return the result from 2nd node to the workflow annotated in different ways
     model = training_results['model']
+
     return model, model, model, model
