@@ -22,7 +22,7 @@ from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 # it makes it cumbersome to place artifacts into specific groups b/c of how the Python types are defined
 
 # we need to change the DX because:
-# it's error prone
+# it's error-prone
 # requires specifying the group values as partitions again and again
 # requires more code than should be necessary, including predefining Artifacts by name instead of inside the Annotation
 # the name of the artifact should be able to automatically set the extension (used by frontend for file previews)
@@ -33,34 +33,22 @@ from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 # https://github.com/flyteorg/flytekit/blob/master/flytekit/core/artifact.py#L371
 # https://github.com/flyteorg/flytekit/blob/master/tests/flytekit/unit/core/test_artifacts.py
 
-ReportGroup1 = ArtifactGroup(name="report_foo", kind=REPORT)
-ReportGroup2 = ArtifactGroup(name="report_bar", kind=REPORT)
-
-# to use partition_keys (necessary for Domino), we have to define this type up front
-ReportArtifact1 = Artifact(name="report1.pdf", partition_keys=["group", "type"])(group="report_foo", type="report")
-ReportArtifact2 = create_artifact(name="report2.pdf", group=ReportGroup1)
-ReportArtifact3 = create_artifact(name="report3.pdf", group=ReportGroup2)
-
-# ideally, a group is defined like this
-# ReportGroup = Group(name="my custom report", type=Report)
+# define artifact groups
+ReportGroup1 = ArtifactGroup(name="reports_foo", type=REPORT)
+ReportGroup2 = ArtifactGroup(name="reports_bar", type=REPORT)
 
 
 @workflow
 def artifact_meta(data_path: str) -> Tuple[
-    Annotated[FlyteFile, ReportArtifact1],
-    Annotated[FlyteFile, ReportArtifact2],
-    Annotated[FlyteFile, ReportArtifact3],
-
-    # ideally the definition looks more like this:
-    # Annotated[FlyteFile, Artifact(name="report.pdf", Group=ReportGroup)],
-    # this could be further simplified in the programming model if we know that these artifacts are only a single file like
-    # ArtifactFile(name="report.pdf", Group=ReportGroup)
-
+    # annotated workflow output with partitions
+    Annotated[FlyteFile, create_artifact(name="report1.pdf", group=ReportGroup1)],
+    Annotated[FlyteFile, create_artifact(name="report2.pdf", group=ReportGroup1)],
+    Annotated[FlyteFile, create_artifact(name="report3.pdf", group=ReportGroup2)],
     # normal workflow output with no annotations
-    FlyteFile
+    FlyteFile,
 ]:
     """py
-    pyflyte run --remote artifacts-po-1.py artifact_meta --data_path /mnt/code/data/data.csv
+    pyflyte run --remote artifacts.py artifact_meta --data_path /mnt/code/data/data.csv
     """
 
     data_prep_results = DominoJobTask(
