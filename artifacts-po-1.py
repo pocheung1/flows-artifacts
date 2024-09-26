@@ -3,7 +3,7 @@ from typing import TypeVar, Annotated, Tuple
 from flytekit import Artifact
 from flytekit import workflow
 from flytekit.types.file import FlyteFile
-from flytekitplugins.domino.artifact import ArtifactGroup, DominoArtifact, REPORT
+from flytekitplugins.domino.artifact import ArtifactGroup, REPORT, create_artifact
 from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 
 # key pieces of data to collect
@@ -37,12 +37,9 @@ ReportGroup1 = ArtifactGroup(name="report_foo", kind=REPORT)
 ReportGroup2 = ArtifactGroup(name="report_bar", kind=REPORT)
 
 # to use partition_keys (necessary for Domino), we have to define this type up front
-# This uses Artifact with partition keys specified
 ReportArtifact1 = Artifact(name="report1.pdf", partition_keys=["group", "type"])(group="report_foo", type="report")
-# This uses DominoArtifact with built-in partition keys: group, type
-ReportArtifact2 = DominoArtifact(name="report2.pdf")(group=ReportGroup1.name, type=ReportGroup1.kind.value)
-# This gives an error: Binding a partition group's value dynamically is not allowed for workflows
-ReportArtifact3 = DominoArtifact(name="report3.pdf", group=ReportGroup2)
+ReportArtifact2 = create_artifact(name="report2.pdf", group=ReportGroup1)
+ReportArtifact3 = create_artifact(name="report3.pdf", group=ReportGroup2)
 
 # ideally, a group is defined like this
 # ReportGroup = Group(name="my custom report", type=Report)
@@ -52,10 +49,10 @@ ReportArtifact3 = DominoArtifact(name="report3.pdf", group=ReportGroup2)
 def artifact_meta(data_path: str) -> Tuple[
     Annotated[FlyteFile, ReportArtifact1],
     Annotated[FlyteFile, ReportArtifact2],
-    Annotated[FlyteFile, DominoArtifact(name="report2.pdf")(group=ReportGroup1.name, type=ReportGroup1.kind.value)],
+    Annotated[FlyteFile, ReportArtifact3],
 
     # ideally the definition looks more like this:
-    # Annotated[FlyteFile, Artifact(name="report.pdf", Group=ReportGroup)], 
+    # Annotated[FlyteFile, Artifact(name="report.pdf", Group=ReportGroup)],
     # this could be further simplified in the programming model if we know that these artifacts are only a single file like
     # ArtifactFile(name="report.pdf", Group=ReportGroup)
 
