@@ -1,9 +1,8 @@
-from typing import TypeVar, Annotated, Tuple
+from typing import Tuple
 
-from flytekit import Artifact
 from flytekit import workflow
 from flytekit.types.file import FlyteFile
-from flytekitplugins.domino.artifact import ArtifactGroup, REPORT, create_artifact
+from flytekitplugins.domino.artifact import ArtifactGroup, REPORT, create_annotated_artifact_file
 from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 
 # key pieces of data to collect
@@ -40,12 +39,14 @@ ReportGroup2 = ArtifactGroup(name="reports_bar", type=REPORT)
 
 @workflow
 def artifact_meta(data_path: str) -> Tuple[
-    # annotated workflow output with partitions
-    Annotated[FlyteFile, create_artifact(name="report1.pdf", group=ReportGroup1)],
-    Annotated[FlyteFile, create_artifact(name="report2.pdf", group=ReportGroup1)],
-    Annotated[FlyteFile, create_artifact(name="report3.pdf", group=ReportGroup2)],
+    # annotated workflow output with group partitions
+    create_annotated_artifact_file(name="report1.csv", group=ReportGroup1),
+    # override file extension with file type
+    create_annotated_artifact_file(name="report2.pdf", group=ReportGroup1, file_type="csv"),
+    # override missing file extension with file type
+    create_annotated_artifact_file(name="report3", group=ReportGroup2, file_type="csv"),
     # normal workflow output with no annotations
-    FlyteFile,
+    FlyteFile["csv"],
 ]:
     """py
     pyflyte run --remote artifacts.py artifact_meta --data_path /mnt/code/data/data.csv
@@ -60,11 +61,10 @@ def artifact_meta(data_path: str) -> Tuple[
             "data_path": str
         },
         outputs={
-            # NOTE: Flyte normally suppports this -- but notice there are no partitions, which make them useless to Domino
-            # this output is consumed by a subsequent task but also marked as an artifact
-            "processed_data": Annotated[FlyteFile[TypeVar("csv")], Artifact(name="processed.csv")],
+            # this output is consumed by a subsequent task but also marked as an artifact with partitions
+            "processed_data": create_annotated_artifact_file(name="processed.csv", group=ReportGroup1),
             # no downstream consumers -- simply an artifact output from an intermediate node in the graph
-            "processed_data2": Annotated[FlyteFile[TypeVar("csv")], Artifact(name="processed2.csv")],
+            "processed_data2": create_annotated_artifact_file(name="processed2.csv", group=ReportGroup2),
         },
         use_latest=True,
     )(data_path=data_path)
@@ -75,12 +75,12 @@ def artifact_meta(data_path: str) -> Tuple[
             Command="python /mnt/code/scripts/train-model.py",
         ),
         inputs={
-            "processed_data": FlyteFile[TypeVar("csv")],
+            "processed_data": FlyteFile["csv"],
             "epochs": int,
             "batch_size": int,
         },
         outputs={
-            "model": FlyteFile[TypeVar("csv")],
+            "model": FlyteFile["csv"],
         },
         use_latest=True,
     )(processed_data=data_prep_results.processed_data, epochs=10, batch_size=32)
