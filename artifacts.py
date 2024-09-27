@@ -1,8 +1,8 @@
-from typing import Tuple
+from typing import Annotated, Tuple
 
 from flytekit import workflow
 from flytekit.types.file import FlyteFile
-from flytekitplugins.domino.artifact import ArtifactGroup, REPORT, create_annotated_artifact_file
+from flytekitplugins.domino.artifact import ArtifactGroup, REPORT, annotated_artifact_file, artifact_specification
 from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 
 # key pieces of data to collect
@@ -40,11 +40,11 @@ ReportGroup2 = ArtifactGroup(name="reports_bar", type=REPORT)
 @workflow
 def artifact_meta(data_path: str) -> Tuple[
     # annotated workflow output with group partitions
-    create_annotated_artifact_file(name="report1.csv", group=ReportGroup1),
+    annotated_artifact_file(name="report1.csv", group=ReportGroup1),
     # override file extension with file type
-    create_annotated_artifact_file(name="report2.pdf", group=ReportGroup1, file_type="csv"),
+    annotated_artifact_file(name="report2.pdf", group=ReportGroup1, file_type="csv"),
     # override missing file extension with file type
-    create_annotated_artifact_file(name="report3", group=ReportGroup2, file_type="csv"),
+    annotated_artifact_file(name="report3", group=ReportGroup2, file_type="csv"),
     # normal workflow output with no annotations
     FlyteFile["csv"],
 ]:
@@ -62,9 +62,9 @@ def artifact_meta(data_path: str) -> Tuple[
         },
         outputs={
             # this output is consumed by a subsequent task but also marked as an artifact with partitions
-            "processed_data": create_annotated_artifact_file(name="processed.csv", group=ReportGroup1),
+            "processed_data": annotated_artifact_file(name="processed.csv", group=ReportGroup1),
             # no downstream consumers -- simply an artifact output from an intermediate node in the graph
-            "processed_data2": create_annotated_artifact_file(name="processed2.csv", group=ReportGroup2),
+            "processed_data2": Annotated[FlyteFile["csv"], artifact_specification(name="processed2.csv", group=ReportGroup2)],
         },
         use_latest=True,
     )(data_path=data_path)
