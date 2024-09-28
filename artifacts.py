@@ -2,7 +2,7 @@ from typing import Annotated, Tuple
 
 from flytekit import workflow
 from flytekit.types.file import FlyteFile
-from flytekitplugins.domino.artifact import ArtifactGroup, REPORT, annotated_artifact_file, artifact_specification
+from flytekitplugins.domino.artifact import ArtifactFile, ArtifactGroup, ArtifactSpec, REPORT
 from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 
 # key pieces of data to collect
@@ -40,11 +40,11 @@ reports_bar = ArtifactGroup(name="reports_bar", type=REPORT)
 @workflow
 def artifact_meta(data_path: str) -> Tuple[
     # annotated workflow output with group partitions
-    annotated_artifact_file(name="report1.csv", group=reports_foo),
+    ArtifactFile(name="report1.csv", group=reports_foo),
     # override file extension with file type
-    annotated_artifact_file(name="report2.pdf", group=reports_foo, file_type="csv"),
+    ArtifactFile(name="report2.pdf", group=reports_foo, file_type="csv"),
     # override missing file extension with file type
-    annotated_artifact_file(name="report3", group=reports_bar, file_type="csv"),
+    ArtifactFile(name="report3", group=reports_bar, file_type="csv"),
     # normal workflow output with no annotations
     FlyteFile["csv"],
 ]:
@@ -62,9 +62,9 @@ def artifact_meta(data_path: str) -> Tuple[
         },
         outputs={
             # this output is consumed by a subsequent task but also marked as an artifact with partitions
-            "processed_data": annotated_artifact_file(name="processed.csv", group=reports_foo),
+            "processed_data": ArtifactFile(name="processed.csv", group=reports_foo),
             # no downstream consumers -- simply an artifact output from an intermediate node in the graph
-            "processed_data2": Annotated[FlyteFile["csv"], artifact_specification(name="processed2.csv", group=reports_bar)],
+            "processed_data2": Annotated[FlyteFile["csv"], ArtifactSpec(name="processed2.csv", group=reports_bar)],
         },
         use_latest=True,
     )(data_path=data_path)
