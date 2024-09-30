@@ -1,20 +1,20 @@
-from typing import Annotated, Tuple
+from typing import Tuple
 
 from flytekit import workflow
 from flytekit.types.file import FlyteFile
-from flytekitplugins.domino.artifact import ArtifactFile, ArtifactGroup, ArtifactSpec, REPORT
+from flytekitplugins.domino.artifact import Artifact, ArtifactFile, REPORT
 from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 
 # key pieces of data to collect
 
-# artifact groups are identified uniquely within an execution by composite key
+# artifacts are identified uniquely within an execution by composite key
 # * name
 # * type
 
-# artifact files within each group are identified uniquely by filename and graph node
+# artifact files within each artifact are identified uniquely by filename and graph node
 # * filename
 # * graph node
-# * artifact group (foreign key)
+# * artifact (foreign key)
 # NOTE: there is an edge case where different outputs in the same node could be annotated identically - we'll require validation to prevent this
 
 # the problem is the way that Flyte stores metadata and how the existing development experience works
@@ -32,19 +32,19 @@ from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 # https://github.com/flyteorg/flytekit/blob/master/flytekit/core/artifact.py#L371
 # https://github.com/flyteorg/flytekit/blob/master/tests/flytekit/unit/core/test_artifacts.py
 
-# define artifact groups
-reports_foo = ArtifactGroup(name="reports_foo", type=REPORT)
-reports_bar = ArtifactGroup(name="reports_bar", type=REPORT)
+# define artifacts
+reports_foo = Artifact(name="reports_foo", type=REPORT)
+reports_bar = Artifact(name="reports_bar", type=REPORT)
 
 
 @workflow
 def artifact_meta(data_path: str) -> Tuple[
-    # annotated workflow output with group partitions
-    ArtifactFile(name="report1.csv", group=reports_foo),
+    # annotated workflow output with artifact partitions
+    ArtifactFile(name="report1.csv", artifact=reports_foo),
     # override file extension with file type
-    ArtifactFile(name="report2.pdf", group=reports_foo, file_type="csv"),
+    ArtifactFile(name="report2.pdf", artifact=reports_foo, file_type="csv"),
     # override missing file extension with file type
-    ArtifactFile(name="report3", group=reports_bar, file_type="csv"),
+    ArtifactFile(name="report3", artifact=reports_bar, file_type="csv"),
     # normal workflow output with no annotations
     FlyteFile["csv"],
 ]:
@@ -62,9 +62,9 @@ def artifact_meta(data_path: str) -> Tuple[
         },
         outputs={
             # this output is consumed by a subsequent task but also marked as an artifact with partitions
-            "processed_data": ArtifactFile(name="processed.csv", group=reports_foo),
+            "processed_data": ArtifactFile(name="processed.csv", artifact=reports_foo),
             # no downstream consumers -- simply an artifact output from an intermediate node in the graph
-            "processed_data2": Annotated[FlyteFile["csv"], ArtifactSpec(name="processed2.csv", group=reports_bar)],
+            "processed_data2": ArtifactFile(name="processed2.csv", artifact=reports_bar),
         },
         use_latest=True,
     )(data_path=data_path)
