@@ -2,7 +2,7 @@ from typing import Tuple
 
 from flytekit import workflow
 from flytekit.types.file import FlyteFile
-from flytekitplugins.domino.artifact import Artifact, ArtifactFile, REPORT
+from flytekitplugins.domino.artifact import Artifact, REPORT
 from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 
 # key pieces of data to collect
@@ -33,18 +33,18 @@ from flytekitplugins.domino.helpers import DominoJobTask, DominoJobConfig
 # https://github.com/flyteorg/flytekit/blob/master/tests/flytekit/unit/core/test_artifacts.py
 
 # define artifacts
-reports_foo = Artifact(name="reports_foo", type=REPORT)
-reports_bar = Artifact(name="reports_bar", type=REPORT)
+ReportFooArtifact = Artifact(name="report_foo", type=REPORT)
+ReportBarArtifact = Artifact(name="report_bar", type=REPORT)
 
 
 @workflow
 def artifact_meta(data_path: str) -> Tuple[
     # annotated workflow output with artifact partitions
-    ArtifactFile(name="report1.csv", artifact=reports_foo),
+    ReportFooArtifact.File(name="report1.csv"),
     # override file extension with file type
-    ArtifactFile(name="report2.pdf", artifact=reports_foo, file_type="csv"),
+    ReportFooArtifact.File(name="report2.pdf", file_type="csv"),
     # override missing file extension with file type
-    ArtifactFile(name="report3", artifact=reports_bar, file_type="csv"),
+    ReportFooArtifact.File(name="report3", file_type="csv"),
     # normal workflow output with no annotations
     FlyteFile["csv"],
 ]:
@@ -61,10 +61,10 @@ def artifact_meta(data_path: str) -> Tuple[
             "data_path": str
         },
         outputs={
-            # this output is consumed by a subsequent task but also marked as an artifact with partitions
-            "processed_data": ArtifactFile(name="processed.csv", artifact=reports_foo),
+            # this output is consumed by a subsequent task but also marked as an artifact
+            "processed_data": ReportFooArtifact.File(name="processed.csv"),
             # no downstream consumers -- simply an artifact output from an intermediate node in the graph
-            "processed_data2": ArtifactFile(name="processed2.csv", artifact=reports_bar),
+            "processed_data2": ReportBarArtifact.File(name="processed2.csv"),
         },
         use_latest=True,
     )(data_path=data_path)
