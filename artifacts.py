@@ -42,9 +42,9 @@ def artifact_meta(data_path: str) -> Tuple[
     # annotated workflow output with artifact partitions
     ReportFooArtifact.File(name="report1.csv"),
     # override file extension with file type
-    ReportFooArtifact.File(name="report2.pdf", file_type="csv"),
+    ReportFooArtifact.File(name="report2.pdf", type="csv"),
     # override missing file extension with file type
-    ReportFooArtifact.File(name="report3", file_type="csv"),
+    ReportFooArtifact.File(name="report3", type="csv"),
     # normal workflow output with no annotations
     FlyteFile["csv"],
 ]:
